@@ -34,7 +34,7 @@ export default class N3Parser {
       this._resolveRelativeIRI = iri => { return null; };
     this._blankNodePrefix = typeof options.blankNodePrefix !== 'string' ? '' :
                               options.blankNodePrefix.replace(/^(?!_:)/, '_:');
-    this._lexer = options.lexer || new N3Lexer({ lineMode: isLineMode, n3: isN3 });
+    this._lexer = options.lexer || new N3Lexer({ lineMode: isLineMode, n3: isN3, ...options.lexerOptions });
     // Disable explicit quantifiers by default
     this._explicitQuantifiers = !!options.explicitQuantifiers;
   }
@@ -1011,7 +1011,7 @@ export default class N3Parser {
   // ## Public methods
 
   // ### `parse` parses the N3 input and emits each parsed quad through the callback
-  parse(input, quadCallback, prefixCallback) {
+  parse(input, quadCallback, prefixCallback, commentCallback) {
     // The read callback is the next function to be executed when a token arrives.
     // We start reading in the top context.
     this._readCallback = this._readInTopContext;
@@ -1040,6 +1040,10 @@ export default class N3Parser {
     this._lexer.tokenize(input, (error, token) => {
       if (error !== null)
         this._callback(error), this._callback = noop;
+      else if (token.type === 'comment') {
+        if (commentCallback)
+          commentCallback(token);
+      }
       else if (this._readCallback)
         this._readCallback = this._readCallback(token);
     });
